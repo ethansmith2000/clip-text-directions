@@ -1,0 +1,4 @@
+*.pt
+*.parquet
+*__pycache__*
+*.tsvs
