@@ -1,5 +1,7 @@
 # clip-text-directions
 
+[post](https://www.notion.so/Traversing-through-CLIP-Space-PCA-and-Latent-Directions-b898932e13684d58957405b4a2747a79?pvs=4#64fd32f7aaf14b3985751a94d184b3a4)
+
 some experiments with extracting directions in CLIP text space, similar to what was done [here](https://github.com/ethansmith2000/clip-decomposition) with image embeddings
 
 Simply creting opposing pairs, extracting the CLS token representation, calculating mean difference between pairs, and then adding this difference to the CLS token to prompt embeddings used for text2image generation with stable diffusion gives some neat ways to finely guide the outputs of your model.
