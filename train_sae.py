@@ -23,7 +23,6 @@ class PreconditionedLp(torch.autograd.Function):
         ctx.reduce = reduce
         ctx.numel = x.numel()
         
-        # True Lp penalty value
         val = (x.abs() + eps).pow(p)
         return val.mean() if reduce == "mean" else val.sum()
     
@@ -32,7 +31,6 @@ class PreconditionedLp(torch.autograd.Function):
         (x,) = ctx.saved_tensors
         p = ctx.p
         
-        # Newton-preconditioned gradient simplifies to p * x.
         preconditioned_grad = p * x
         
         scale = grad_output / ctx.numel if ctx.reduce == "mean" else grad_output
