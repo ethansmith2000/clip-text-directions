@@ -7,25 +7,42 @@ import torch.nn.functional as F
 import json
 from types import SimpleNamespace
 
-def l0_loss_fn(x, 
-            eps=1e-3, # everything below this will be considered 0
-            scale = 10000.0 # push everything to [0,1] so we can count number of non-zeros
-            ):
-    return torch.sigmoid((x - eps) * scale).mean()
+import torch
 
 
-def lp_loss_fn(x, p=0.5, eps=1e-8, reduce="mean"):
-    reduce = torch.mean if reduce == "mean" else torch.sum
-    return (reduce(x.pow(p + eps)) + eps).pow(1/p)
+class PreconditionedLp(torch.autograd.Function):
+    """
+    Lp sparsity penalty with Newton-style preconditioning on its backward pass.
+    """
+    
+    @staticmethod
+    def forward(ctx, x, p, eps, reduce):
+        ctx.save_for_backward(x)
+        ctx.p = p
+        ctx.eps = eps
+        ctx.reduce = reduce
+        ctx.numel = x.numel()
+        
+        # True Lp penalty value
+        val = (x.abs() + eps).pow(p)
+        return val.mean() if reduce == "mean" else val.sum()
+    
+    @staticmethod
+    def backward(ctx, grad_output):
+        (x,) = ctx.saved_tensors
+        p = ctx.p
+        
+        # Newton-preconditioned gradient simplifies to p * x.
+        preconditioned_grad = p * x
+        
+        scale = grad_output / ctx.numel if ctx.reduce == "mean" else grad_output
+        grad_x = scale * preconditioned_grad
+        
+        return grad_x, None, None, None
 
-# doing it in log space 
-def lp_loss_fn_safe(x, p=0.5, eps=1e-8, reduce="mean"):
-    reduce = torch.mean if reduce == "mean" else torch.sum
-    x = torch.log(x + eps)
-    x = x * p
-    x = reduce(torch.exp(x))
-    x = torch.log(x + eps).pow(1/p)
-    return x
+
+def preconditioned_lp_loss(x, p=0.25, eps=1e-8, reduce="mean"):
+    return PreconditionedLp.apply(x, p, eps, reduce)
 
 
 class ConfigurableModule(nn.Module):
